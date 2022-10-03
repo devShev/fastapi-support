@@ -12,12 +12,13 @@ class Settings(BaseSettings):
     database_url: str = f'postgresql+psycopg2' \
                         f'://{os.environ.get("POSTGRES_USER")}' \
                         f':{os.environ.get("POSTGRES_PASSWORD")}' \
-                        f'@{server_host}' \
+                        f'@{os.environ.get("POSTGRES_HOST")}' \
                         f'/{os.environ.get("POSTGRES_NAME")}'
 
     # JWT Settings
     jwt_algorithm: str = 'HS256'
     jwt_expiration: int = 3600  # Seconds
+    jwt_secret: str = f'{os.environ.get("JWT_SECRET")}'
 
 
 settings = Settings()

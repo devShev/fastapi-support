@@ -1,4 +1,11 @@
+from enum import Enum
+
 from pydantic import BaseModel
+
+
+class UserGroup(str, Enum):
+    USER = 'user'
+    MODER = 'moder'
 
 
 class BaseUser(BaseModel):
@@ -12,6 +19,7 @@ class UserCreate(BaseUser):
 
 class User(BaseUser):
     id: int
+    user_group: UserGroup
 
     class Config:
         orm_mode = True
