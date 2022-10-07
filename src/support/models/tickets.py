@@ -21,8 +21,13 @@ class TicketCreate(BaseTicket):
     pass
 
 
-class TicketUpdate(BaseModel):
-    status: TicketStatus
+class TicketUpdate(BaseTicket):
+    status: str
+
+
+class TicketAttrUpdate(BaseModel):
+    field: str
+    value: str
 
 
 class Ticket(BaseTicket):

@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from support import tables
 from support.database import get_session
 from support.models.auth import User, UserGroup
-from support.models.tickets import TicketStatus, TicketCreate, TicketUpdate
+from support.models.tickets import TicketStatus, TicketCreate, TicketUpdate, TicketAttrUpdate
 
 
 class TicketsService:
@@ -67,11 +67,36 @@ class TicketsService:
 
         init_status = ticket.status
 
-        ticket.status = ticket_data.status
+        for field, value in ticket_data:
+            setattr(ticket, field, value)
 
         if user.user_group == UserGroup.USER:
             ticket.status = init_status
 
+        self.session.commit()
+
+        return ticket
+
+    def attr_update(self, user: User, ticket_id: int, ticket_data: TicketAttrUpdate) -> tables.Ticket:
+        ticket = self._get(user, ticket_id)
+
+        field = ticket_data.field
+        value = ticket_data.value
+
+        if not hasattr(ticket, field):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+
+        only_moder_fields = (
+            'id',
+            'status',
+            'user_id',
+            'created_date',
+        )
+
+        if user.user_group != UserGroup.MODER and (field in only_moder_fields):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+        setattr(ticket, field, value)
         self.session.commit()
 
         return ticket

@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 
-from support.models.tickets import Ticket, TicketStatus, TicketCreate, TicketUpdate
+from support.models.tickets import Ticket, TicketStatus, TicketCreate, TicketUpdate, TicketAttrUpdate
 from support.models.auth import User
 from support.services.auth import get_current_user
 from support.services.tickets import TicketsService
@@ -41,13 +41,23 @@ def create_ticket(
 
 
 @router.put('/{ticket_id}', response_model=Ticket)
-def update_status(
+def update_ticket(
         ticket_id: int,
         ticket_data: TicketUpdate,
         user: User = Depends(get_current_user),
         service: TicketsService = Depends(),
 ):
     return service.update(user, ticket_id, ticket_data)
+
+
+@router.patch('/{ticket_id}', response_model=Ticket)
+def update_attr_ticket(
+        ticket_id: int,
+        ticket_data: TicketAttrUpdate,
+        user: User = Depends(get_current_user),
+        service: TicketsService = Depends(),
+):
+    return service.attr_update(user, ticket_id, ticket_data)
 
 
 @router.delete('/{ticket_id}')

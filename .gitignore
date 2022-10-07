@@ -137,4 +137,5 @@ GitHub.sublime-settings
 .history
 
 .db_conf/
+.db_conf/*
 .idea/
