@@ -1,6 +1,5 @@
 import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -44,8 +43,13 @@ class BaseMessage(BaseModel):
     message_text: str
 
 
+class MessageCreate(BaseMessage):
+    pass
+
+
 class Message(BaseMessage):
     id: int
+    ticket_id: int
     user_id: int
     created_date: datetime.datetime
 
