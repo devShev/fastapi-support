@@ -9,3 +9,4 @@ PyJWT==2.5.0
 python-multipart==0.0.5
 isort==5.10.1
 flake8==5.0.4
+celery==5.2.7

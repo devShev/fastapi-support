@@ -90,7 +90,7 @@ coverage.xml
 # pyenv
 .python-version
 
-# celery
+# celery_app
 celerybeat-schedule.*
 
 # SageMath parsed files

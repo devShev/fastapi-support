@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from celery_app.support.tasks import print_number
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -62,6 +63,8 @@ class TicketsService:
         return self._get_ticket(user, ticket_id)
 
     def get_tickets_list(self, user: User, ticket_status: Optional[TicketStatus] = None) -> List[tables.Ticket]:
+        print_number.delay(5, 5)
+
         query = (
             self.session
             .query(tables.Ticket)
