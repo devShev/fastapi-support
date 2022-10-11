@@ -1,17 +1,18 @@
 from typing import List, Optional
 
-from celery_app.support.tasks import print_number
+from celery_app.support.tasks import send_status_to_mail
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from support import tables
 from support.database import get_session
 from support.models.auth import User, UserGroup
-from support.models.tickets import (Message, MessageCreate, TicketAttrUpdate,
-                                    TicketCreate, TicketStatus, TicketUpdate)
+from support.models.tickets import (Message, MessageCreate, Ticket,
+                                    TicketAttrUpdate, TicketCreate,
+                                    TicketStatus, TicketUpdate)
 
 
-class Permissions:
+class Tools:
     @staticmethod
     def check_moder_or_owner(user: User, ticket: tables.Ticket) -> None:
         """
@@ -37,6 +38,18 @@ class Permissions:
         if user.user_group != UserGroup.MODER and (field in only_moder_fields):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
+    @staticmethod
+    def check_the_status_change(init_status: str, ticket: Ticket, session: Session):
+        """
+        Checking init & current status. If current != init - send message to ticket owner
+        """
+
+        if ticket.status != init_status:
+            ticket_owner = session.query(tables.User).filter_by(id=ticket.user_id).first()
+            email = ticket_owner.email
+            if email:
+                send_status_to_mail.delay(email, ticket.status)
+
 
 class TicketsService:
     def __init__(self, session: Session = Depends(get_session)):
@@ -55,7 +68,7 @@ class TicketsService:
         if not ticket:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-        Permissions.check_moder_or_owner(user, ticket)
+        Tools.check_moder_or_owner(user, ticket)
 
         return ticket
 
@@ -63,8 +76,6 @@ class TicketsService:
         return self._get_ticket(user, ticket_id)
 
     def get_tickets_list(self, user: User, ticket_status: Optional[TicketStatus] = None) -> List[tables.Ticket]:
-        print_number.delay(5, 5)
-
         query = (
             self.session
             .query(tables.Ticket)
@@ -103,6 +114,8 @@ class TicketsService:
         if user.user_group == UserGroup.USER:
             ticket.status = init_status
 
+        Tools.check_the_status_change(init_status, ticket, self.session)
+
         self.session.commit()
 
         return ticket
@@ -110,15 +123,20 @@ class TicketsService:
     def ticket_attr_update(self, user: User, ticket_id: int, ticket_data: TicketAttrUpdate) -> tables.Ticket:
         ticket = self._get_ticket(user, ticket_id)
 
+        init_status = ticket.status
+
         field = ticket_data.field
         value = ticket_data.value
 
         if not hasattr(ticket, field):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
-        Permissions.check_moder_fields(user, field)
+        Tools.check_moder_fields(user, field)
 
         setattr(ticket, field, value)
+
+        Tools.check_the_status_change(init_status, ticket, self.session)
+
         self.session.commit()
 
         return ticket
@@ -132,7 +150,7 @@ class TicketsService:
     def create_message(self, user, ticket_id: int, message_data: MessageCreate) -> Message:
         ticket = self._get_ticket(user, ticket_id)
 
-        Permissions.check_moder_or_owner(user, ticket)
+        Tools.check_moder_or_owner(user, ticket)
 
         message = tables.Message(
             **message_data.dict(),
@@ -148,7 +166,7 @@ class TicketsService:
     def get_messages(self, user: User, ticket_id: int) -> List[tables.Message]:
         ticket = self._get_ticket(user, ticket_id)
 
-        Permissions.check_moder_or_owner(user, ticket)  # Check permissions (invalid = raise 404)
+        Tools.check_moder_or_owner(user, ticket)  # Check permissions (invalid = raise 404)
 
         query = (
             self.session
